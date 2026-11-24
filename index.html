@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claves para Abordar la Prueba POC · Reto 5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0f172a; --ink2:#1e293b; --paper:#f8fafc; --card:#ffffff; --line:#e2e8f0;
+  --muted:#64748b; --blue:#0284c7; --blue-l:#e0f2fe; --orange:#d97706; --orange-l:#fef3c7;
+  --green:#059669; --green-l:#ecfdf5; --red:#dc2626; --red-l:#fef2f2; --gold:#f5b400;
+  --sans:'Outfit',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,Consolas,monospace;
+  --shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px rgba(15,23,42,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--ink);font-family:var(--sans);color:var(--ink)}
+button{font-family:inherit;cursor:pointer}
+code,.mono{font-family:var(--mono)}
+
+/* ---------- deck ---------- */
+.deck{position:fixed;inset:0}
+.slide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;
+  padding:clamp(56px,7vh,90px) clamp(20px,6vw,90px) clamp(84px,11vh,110px);background:var(--paper);
+  opacity:0;visibility:hidden;transform:translateX(40px);transition:opacity .5s ease,transform .5s ease,visibility .5s;overflow-y:auto}
+.slide.active{opacity:1;visibility:visible;transform:none}
+.slide.past{transform:translateX(-40px)}
+.slide.dark{background:radial-gradient(1200px 600px at 85% 10%,#1e3a5f 0%,transparent 60%),var(--ink);color:#fff}
+.wrap{width:100%;max-width:1180px;margin:auto}
+
+/* top brand strip */
+.brand{position:fixed;top:0;left:0;right:0;height:44px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 clamp(16px,3vw,32px);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);z-index:20;pointer-events:none}
+.brand b{color:var(--blue);font-weight:600}
+body.on-dark .brand{color:#94a3b8}
+.progress{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--blue),var(--orange));z-index:30;transition:width .45s ease}
+
+/* nav bar */
+.nav{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:6px;
+  background:rgba(15,23,42,.88);backdrop-filter:blur(10px);padding:6px;border-radius:999px;z-index:40;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.nav button{background:transparent;border:0;color:#e2e8f0;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;transition:background .2s}
+.nav button:hover{background:rgba(255,255,255,.12)}
+.nav button:disabled{opacity:.3;cursor:default;background:transparent}
+.nav .count{color:#fff;font-size:14px;font-variant-numeric:tabular-nums;min-width:64px;text-align:center}
+.nav .next{background:var(--blue)}
+.nav .next:hover{background:#0369a1}
+.nav svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.hint{position:fixed;bottom:28px;right:24px;font-size:12px;color:#94a3b8;z-index:39}
+.hint kbd{font-family:var(--mono);background:rgba(148,163,184,.18);border-radius:4px;padding:1px 6px}
+@media(max-width:760px){.hint{display:none}}
+
+/* overview */
+.overview{position:fixed;inset:0;background:rgba(15,23,42,.96);z-index:60;display:none;padding:70px 5vw 40px;overflow:auto}
+.overview.open{display:block}
+.overview h3{color:#fff;font-weight:600;margin-bottom:20px}
+.ov-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.ov-item{background:#1e293b;border:1px solid #334155;color:#e2e8f0;text-align:left;padding:14px;border-radius:12px;font-size:14px;line-height:1.35;transition:.2s}
+.ov-item:hover,.ov-item.cur{border-color:var(--blue);background:#0c4a6e}
+.ov-item span{display:block;font-size:11px;color:#94a3b8;margin-bottom:6px;letter-spacing:.1em}
+
+/* ---------- type ---------- */
+.eyebrow{font-size:13px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:var(--blue)}
+.eyebrow.or{color:var(--orange)}
+h1{font-size:clamp(38px,6vw,76px);line-height:1.02;font-weight:700;letter-spacing:-.02em}
+h2{font-size:clamp(28px,3.6vw,44px);font-weight:700;letter-spacing:-.015em;text-align:center;line-height:1.1}
+.sub{color:var(--muted);text-align:center;margin-top:8px;font-size:clamp(15px,1.4vw,18px)}
+.head{margin-bottom:clamp(24px,4vh,44px)}
+
+/* fragments (click-to-reveal) */
+.frag{opacity:0;transform:translateY(14px);transition:opacity .45s ease,transform .45s ease}
+.frag.shown{opacity:1;transform:none}
+
+/* ---------- cover ---------- */
+.cover{display:grid;grid-template-columns:1.25fr 1fr;gap:40px;align-items:center}
+.cover .bar{width:48px;height:4px;background:var(--orange);border-radius:2px;margin-bottom:18px}
+.cover h1 span{color:var(--gold)}
+.cover p.lead{color:#cbd5e1;font-size:clamp(17px,1.6vw,21px);margin:20px 0 34px;max-width:560px;line-height:1.45}
+.author{border-left:3px solid var(--gold);padding-left:16px}
+.author b{display:block;color:var(--gold);letter-spacing:.06em;font-weight:600}
+.author small{display:block;color:#94a3b8;letter-spacing:.14em;font-size:12px;margin:4px 0}
+.author a{color:#7dd3fc;text-decoration:none;font-size:14px}
+.date{margin-top:26px;color:var(--orange);font-weight:500}
+.start{margin-top:30px;display:inline-flex;align-items:center;gap:10px;background:var(--gold);color:var(--ink);border:0;
+  padding:14px 26px;border-radius:999px;font-weight:700;font-size:16px;transition:transform .2s,box-shadow .2s}
+.start:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(245,180,0,.35)}
+.grid-svg{width:100%;max-width:440px;justify-self:center}
+.grid-svg .flow{stroke-dasharray:6 10;animation:flow 1.6s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-32}}
+.grid-svg .pulse{animation:pulse 2.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+@media(max-width:860px){.cover{grid-template-columns:1fr}.grid-svg{max-width:280px}}
+
+/* ---------- stats ---------- */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.stat{background:var(--card);border-radius:20px;padding:34px 24px;text-align:center;box-shadow:var(--shadow);border-top:5px solid var(--blue);cursor:pointer;transition:transform .25s}
+.stat:hover{transform:translateY(-4px)}
+.stat:nth-child(2){border-color:var(--orange)}.stat:nth-child(3){border-color:var(--ink)}
+.stat .num{font-size:clamp(56px,8vw,104px);font-weight:800;line-height:1;color:var(--blue);font-variant-numeric:tabular-nums}
+.stat:nth-child(2) .num{color:var(--orange)}.stat:nth-child(3) .num{color:var(--ink)}
+.stat h4{font-size:20px;margin:12px 0 6px}
+.stat p{color:var(--muted);font-size:15px}
+.stat .more{max-height:0;overflow:hidden;transition:max-height .4s ease,margin .4s;font-size:14px;color:var(--ink2);background:var(--paper);border-radius:10px}
+.stat.open .more{max-height:120px;margin-top:14px;padding:10px 12px}
+.tap{display:block;text-align:center;color:var(--muted);font-size:13px;margin-top:22px}
+@media(max-width:760px){.stats{grid-template-columns:1fr}}
+
+/* ---------- anatomy ---------- */
+.anat{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;position:relative}
+.acard{background:var(--card);border-radius:18px;padding:28px;box-shadow:var(--shadow);border:2px solid transparent}
+.acard .ic{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;background:var(--blue-l);color:var(--blue);margin-bottom:18px}
+.acard:nth-child(2) .ic{background:var(--orange-l);color:var(--orange)}
+.acard:nth-child(3) .ic{background:#e2e8f0;color:var(--ink)}
+.acard .ic svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.acard h4{font-size:21px;margin-bottom:8px}
+.acard p{color:var(--muted);line-height:1.45}
+.mock{margin-top:28px;background:var(--card);border-radius:16px;padding:20px 24px;box-shadow:var(--shadow);font-size:15px;line-height:1.5}
+.mock .row{padding:8px 12px;border-radius:8px;margin:4px 0;transition:background .3s}
+.mock .tag{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-right:8px}
+.mock .r1 .tag{color:var(--blue)} .mock .r2 .tag{color:var(--orange)} .mock .r3 .tag{color:var(--ink)}
+.mock .opts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+.mock .opts div{border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-family:var(--mono);font-size:13px}
+.mock .opts .k{border-color:var(--green);background:var(--green-l)}
+@media(max-width:860px){.anat{grid-template-columns:1fr}}
+
+/* ---------- section divider ---------- */
+.divider{display:grid;grid-template-columns:auto 1fr;gap:clamp(24px,5vw,64px);align-items:center}
+.divider .big{font-size:clamp(120px,20vw,260px);font-weight:800;line-height:.8;color:transparent;-webkit-text-stroke:2px rgba(125,211,252,.55)}
+.divider.o .big{-webkit-text-stroke-color:rgba(251,191,36,.6)}
+.divider h1{font-size:clamp(34px,5vw,64px);margin:14px 0 18px}
+.divider .rac{display:inline-block;background:rgba(2,132,199,.2);color:#7dd3fc;padding:6px 14px;border-radius:999px;font-weight:600;font-size:14px}
+.divider.o .rac{background:rgba(217,119,6,.2);color:#fcd34d}
+.divider .eyebrow{color:#7dd3fc}.divider.o .eyebrow{color:#fcd34d}
+@media(max-width:700px){.divider{grid-template-columns:1fr}.divider .big{font-size:110px}}
+
+/* ---------- tips + code (RAC1) ---------- */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:center}
+@media(max-width:860px){.two{grid-template-columns:1fr}}
+.tiplist{display:flex;flex-direction:column;gap:12px}
+.tip{background:var(--card);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);border-left:4px solid var(--blue);cursor:pointer;transition:border-color .25s,transform .25s}
+.tip:hover{transform:translateX(4px)}
+.tip.hl{border-color:var(--orange)}
+.tip b{color:var(--blue);display:block;margin-bottom:3px;font-size:17px}
+.tip span{color:var(--ink2);line-height:1.4}
+.code{background:var(--ink);border-radius:18px;padding:22px 0;box-shadow:0 20px 40px rgba(15,23,42,.25);font-family:var(--mono);font-size:clamp(13px,1.15vw,15px);color:#e2e8f0;overflow:hidden}
+.code .bar3{display:flex;gap:6px;padding:0 20px 14px;border-bottom:1px solid #1e293b;margin-bottom:12px;align-items:center}
+.code .bar3 i{width:11px;height:11px;border-radius:50%;background:#334155}
+.code .bar3 i:nth-child(1){background:#f87171}.code .bar3 i:nth-child(2){background:#fbbf24}.code .bar3 i:nth-child(3){background:#34d399}
+.code .bar3 em{margin-left:10px;font-style:normal;color:#64748b;font-size:12px}
+.ln{display:block;padding:3px 20px 3px 16px;border-left:3px solid transparent;transition:background .3s,border-color .3s;white-space:pre}
+.ln.hl{background:rgba(2,132,199,.22);border-color:var(--gold)}
+.c-com{color:#64748b}.c-kw{color:#f472b6}.c-fn{color:#7dd3fc}.c-num{color:#fbbf24}.c-op{color:#fb923c;font-weight:600}.c-str{color:#86efac}
+
+/* ---------- quiz ---------- */
+.quiz{display:grid;grid-template-columns:1fr 1fr;gap:26px;align-items:start}
+@media(max-width:900px){.quiz{grid-template-columns:1fr}}
+.stem{background:var(--card);border-radius:18px;padding:26px;box-shadow:var(--shadow);border-top:4px solid var(--blue)}
+.stem.or{border-color:var(--orange)}
+.stem .eyebrow{font-size:12px;margin-bottom:12px}
+.stem p{line-height:1.5;color:var(--ink2);font-size:clamp(15px,1.3vw,17px)}
+.stem p.q{font-weight:600;color:var(--ink);margin-top:14px}
+.stem code{background:var(--blue-l);color:#075985;padding:1px 6px;border-radius:5px;font-size:.92em}
+.opts{display:flex;flex-direction:column;gap:10px}
+.opt{display:flex;gap:12px;align-items:center;text-align:left;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:14px 16px;font-size:16px;color:var(--ink);transition:border-color .2s,background .2s,transform .2s}
+.opt:hover:not(:disabled){border-color:var(--blue);transform:translateX(3px)}
+.opt .l{flex:0 0 32px;height:32px;border-radius:9px;display:grid;place-items:center;background:var(--paper);font-weight:700;color:var(--muted)}
+.opt .t{font-family:var(--mono);font-size:15px}
+.opt .t.txt{font-family:var(--sans);font-size:15.5px}
+.opt:disabled{cursor:default}
+.opt.ok{border-color:var(--green);background:var(--green-l)}
+.opt.ok .l{background:var(--green);color:#fff}
+.opt.bad{border-color:var(--red);background:var(--red-l)}
+.opt.bad .l{background:var(--red);color:#fff}
+.opt.dim{opacity:.55}
+.feedback{margin-top:14px;display:grid;gap:10px}
+.fb{border-radius:14px;padding:14px 16px;font-size:15px;line-height:1.45;animation:pop .35s ease}
+.fb b{display:block;margin-bottom:2px}
+.fb.k{background:var(--green-l);border:1px solid #a7f3d0;color:#065f46}
+.fb.d{background:var(--red-l);border:1px solid #fecaca;color:#991b1b}
+@keyframes pop{from{opacity:0;transform:translateY(8px)}}
+.qhint{font-size:13px;color:var(--muted);margin-bottom:10px}
+.retry{background:none;border:0;color:var(--blue);font-weight:600;font-size:14px;margin-top:6px;justify-self:start}
+
+/* ---------- RAC2 SOC simulator ---------- */
+.rules{display:flex;flex-direction:column;gap:14px}
+.rule{display:flex;gap:14px;background:var(--card);border-radius:14px;padding:16px;box-shadow:var(--shadow)}
+.rule .n{flex:0 0 38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:700;color:#fff;background:var(--blue)}
+.rule:nth-child(2) .n{background:var(--orange)}.rule:nth-child(3) .n{background:var(--ink)}
+.rule h4{font-size:17px;margin-bottom:3px}
+.rule p{color:var(--muted);font-size:14.5px;line-height:1.4}
+.rule code{color:var(--ink);background:var(--paper);padding:0 5px;border-radius:4px}
+.sim{background:var(--card);border-radius:20px;padding:22px;box-shadow:var(--shadow)}
+.sim h4{font-size:15px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+.batt{display:flex;align-items:center;gap:18px;margin-bottom:12px}
+.cell{position:relative;width:150px;height:62px;border:4px solid var(--ink);border-radius:12px;padding:4px}
+.cell::after{content:"";position:absolute;right:-12px;top:18px;width:8px;height:18px;background:var(--ink);border-radius:0 4px 4px 0}
+.cell .fill{height:100%;border-radius:6px;background:var(--green);transition:width .25s,background .25s}
+.socv{font-size:42px;font-weight:800;font-variant-numeric:tabular-nums}
+.state{display:inline-block;padding:5px 14px;border-radius:999px;font-weight:700;font-size:14px;color:#fff;background:var(--green)}
+input[type=range]{width:100%;accent-color:var(--blue);height:28px;cursor:pointer}
+.loads{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.load{border-radius:12px;padding:10px;text-align:center;font-size:13.5px;font-weight:600;border:2px solid var(--line);transition:.25s}
+.load .ico{font-size:22px;display:block;margin-bottom:3px;filter:grayscale(1);opacity:.4;transition:.25s}
+.load.on{border-color:var(--green);background:var(--green-l);color:#065f46}
+.load.on .ico{filter:none;opacity:1}
+.load.off{color:#94a3b8;text-decoration:line-through}
+.sim .code{font-size:13px;padding:12px 0;border-radius:12px}
+
+/* ---------- HMI ---------- */
+.comps{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.comp{background:var(--card);border-radius:14px;padding:16px;box-shadow:var(--shadow);border:2px solid transparent;cursor:pointer;transition:.25s;text-align:left}
+.comp:hover,.comp.hl{border-color:var(--orange)}
+.comp .ic{font-size:22px}
+.comp h4{font-size:17px;margin:6px 0 4px}
+.comp p{color:var(--muted);font-size:14px;line-height:1.4}
+.hmi{background:#e5e7eb;border-radius:16px;padding:14px;box-shadow:var(--shadow);border:1px solid #cbd5e1}
+.hmi .title{display:flex;justify-content:space-between;font-size:12px;color:#475569;padding:0 4px 10px;font-weight:600}
+.hmi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.panel{background:#fff;border-radius:10px;padding:12px;border:2px solid transparent;transition:border-color .25s,box-shadow .25s}
+.panel.hl{border-color:var(--orange);box-shadow:0 0 0 4px rgba(217,119,6,.15)}
+.panel label{font-size:12px;color:#475569;font-weight:600;display:block;margin-bottom:6px}
+.panel.wide{grid-column:1/-1}
+.lamp{width:30px;height:30px;border-radius:50%;background:var(--green);box-shadow:0 0 16px var(--green);transition:.3s;display:inline-block;vertical-align:middle;margin-right:8px}
+.lamp.red{background:var(--red);box-shadow:0 0 16px var(--red)}
+.log{font-family:var(--mono);font-size:12px;color:#0f172a;background:#f1f5f9;border-radius:6px;padding:6px 8px;min-height:30px}
+.btn-hmi{background:var(--blue);color:#fff;border:0;border-radius:8px;padding:8px 14px;font-weight:600;font-size:13px}
+
+/* ---------- writing ---------- */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:760px){.cols{grid-template-columns:1fr}}
+.col{border-radius:18px;padding:22px 24px;box-shadow:var(--shadow);background:var(--card)}
+.col h4{display:flex;align-items:center;gap:10px;font-size:20px;margin-bottom:12px}
+.col h4 i{font-style:normal;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:16px}
+.col.no{border-top:5px solid var(--red)} .col.no h4{color:var(--red)} .col.no h4 i{background:var(--red)}
+.col.yes{border-top:5px solid var(--blue)} .col.yes h4{color:var(--blue)} .col.yes h4 i{background:var(--blue)}
+.col li{list-style:none;padding:9px 0;border-bottom:1px dashed var(--line);line-height:1.4}
+.col li:last-child{border:0}
+.col li small{color:var(--muted)}
+.game{margin-top:16px;background:var(--card);border-radius:18px;padding:18px 22px;box-shadow:var(--shadow)}
+.game h5{font-size:15px;margin-bottom:10px}
+.game h5 span{color:var(--muted);font-weight:400}
+.phr{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;padding:5px 0;border-bottom:1px solid var(--line)}
+.phr:last-child{border:0}
+.phr q{flex:1 1 260px;font-style:italic}
+.phr button{border:2px solid var(--line);background:#fff;border-radius:999px;padding:6px 14px;font-size:13.5px;font-weight:600}
+.phr button.y:hover{border-color:var(--blue);color:var(--blue)}
+.phr button.n:hover{border-color:var(--red);color:var(--red)}
+.phr .res{font-size:13.5px;flex-basis:100%;animation:pop .3s}
+.phr .res.good{color:var(--green)}.phr .res.wrong{color:var(--red)}
+
+/* ---------- route ---------- */
+.route{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;position:relative}
+.route::before{content:"";position:absolute;top:46px;left:12%;right:12%;height:3px;background:var(--line);z-index:0}
+.step{position:relative;z-index:1;text-align:center;background:var(--card);border-radius:18px;padding:22px 16px;box-shadow:var(--shadow)}
+.step .n{width:64px;height:64px;margin:0 auto 14px;border-radius:50%;display:grid;place-items:center;font-size:22px;font-weight:800;color:#fff;background:var(--blue);box-shadow:0 0 0 6px var(--paper)}
+.step:nth-child(even) .n{background:var(--orange)}
+.step h4{font-size:19px;margin-bottom:6px}
+.step p{color:var(--muted);line-height:1.45;font-size:15px}
+@media(max-width:860px){.route{grid-template-columns:1fr 1fr}.route::before{display:none}}
+
+/* ---------- end ---------- */
+.end{text-align:center}
+.end h1{font-size:clamp(64px,11vw,150px);color:var(--gold)}
+.end p{color:#cbd5e1;font-size:clamp(17px,1.6vw,21px);margin-top:14px}
+.score{display:inline-flex;gap:28px;margin-top:34px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:20px 30px;text-align:left;align-items:center}
+.score .big{font-size:52px;font-weight:800;color:#7dd3fc;line-height:1}
+.score small{color:#94a3b8;display:block;font-size:14px}
+.score button{background:transparent;border:1px solid #475569;color:#e2e8f0;border-radius:999px;padding:8px 16px;font-size:14px}
+.end .author{display:inline-block;text-align:left;margin-top:34px}
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="brand"><span><b>UNAD</b> · ECBTI · Software para Ingeniería</span><span>Reto 5 · Prueba POC</span></div>
+
+<main class="deck" id="deck">
+
+<!-- 1 · PORTADA -->
+<section class="slide dark" data-title="Portada">
+  <div class="wrap cover">
+    <div>
+      <div class="bar"></div>
+      <div class="eyebrow or">Reto 5 · Evaluación integradora</div>
+      <h1 style="margin-top:14px">Claves para Abordar la <span>Prueba POC</span></h1>
+      <p class="lead">Estrategias técnicas y discursivas para el cuestionario del curso Software para Ingeniería</p>
+      <div class="author">
+        <b>FAUSTO MIGUEL CASTRO CAICEDO</b>
+        <small>DIRECTOR</small>
+        <a href="mailto:miguel.castro@unad.edu.co">miguel.castro@unad.edu.co</a>
+      </div>
+      <div class="date">24 de noviembre de 2026</div>
+      <button class="start" onclick="go(1)">Iniciar
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    </div>
+    <!-- micro-red híbrida SIGE -->
+    <svg class="grid-svg" viewBox="0 0 400 400" aria-label="Micro-red híbrida">
+      <circle cx="200" cy="200" r="150" fill="none" stroke="#334155" stroke-dasharray="2 8"/>
+      <g stroke="#7dd3fc" stroke-width="3" fill="none">
+        <path class="flow" d="M200 200 L200 70"/><path class="flow" d="M200 200 L330 200"/>
+        <path class="flow" d="M200 200 L200 330"/><path class="flow" d="M200 200 L70 200"/>
+      </g>
+      <g font-family="Outfit" font-size="13" fill="#cbd5e1" text-anchor="middle">
+        <circle cx="200" cy="60" r="34" fill="#1e293b" stroke="#fbbf24" stroke-width="2"/>
+        <text x="200" y="66" font-size="24">☀️</text><text x="200" y="116">Solar</text>
+        <circle cx="340" cy="200" r="34" fill="#1e293b" stroke="#7dd3fc" stroke-width="2"/>
+        <text x="340" y="207" font-size="24">🌬️</text><text x="340" y="252">Eólica</text>
+        <circle cx="200" cy="340" r="34" fill="#1e293b" stroke="#34d399" stroke-width="2"/>
+        <text x="200" y="347" font-size="24">🔋</text><text x="200" y="298">Batería · SOC</text>
+        <circle cx="60" cy="200" r="34" fill="#1e293b" stroke="#f472b6" stroke-width="2"/>
+        <text x="60" y="207" font-size="24">🏫</text><text x="60" y="252">Cargas</text>
+      </g>
+      <circle cx="200" cy="200" r="46" fill="#0284c7" class="pulse" opacity=".25"/>
+      <circle cx="200" cy="200" r="36" fill="#0f172a" stroke="#0284c7" stroke-width="3"/>
+      <text x="200" y="206" text-anchor="middle" font-family="Outfit" font-weight="800" font-size="18" fill="#fff">SIGE</text>
+    </svg>
+  </div>
+</section>
+
+<!-- 2 · ESTRUCTURA -->
+<section class="slide" data-title="Estructura de la Evaluación Nacional">
+  <div class="wrap">
+    <div class="head"><h2>Estructura de la Evaluación Nacional</h2><p class="sub">Parámetros generales del cuestionario institucional</p></div>
+    <div class="stats">
+      <div class="stat" onclick="this.classList.toggle('open')"><div class="num" data-count="25">0</div><h4>Preguntas POC</h4><p>Selección múltiple con única respuesta</p>
+        <div class="more">Cada reactivo tiene <b>una sola clave</b> válida entre cuatro opciones.</div></div>
+      <div class="stat" onclick="this.classList.toggle('open')"><div class="num" data-count="125">0</div><h4>Puntos Totales</h4><p>Equivalente al 25% del curso</p>
+        <div class="more">25 preguntas × <b>5 puntos</b> cada una.</div></div>
+      <div class="stat" onclick="this.classList.toggle('open')"><div class="num" data-count="3">0</div><h4>Resultados (RAC)</h4><p>Evaluación integral del proyecto SIGE</p>
+        <div class="more">RAC 1 Modelado · RAC 2 Control · RAC 3 HMI, más la comunicación escrita transversal.</div></div>
+    </div>
+    <span class="tap">👆 Toca cada tarjeta para ver el detalle</span>
+  </div>
+</section>
+
+<!-- 3 · ANATOMÍA -->
+<section class="slide" data-title="Anatomía de la Pregunta POC">
+  <div class="wrap">
+    <div class="head"><h2>Anatomía de la Pregunta POC</h2><p class="sub">Cómo leer y descomponer cada reactivo del examen</p></div>
+    <div class="anat">
+      <div class="acard frag" data-hl="r1"><div class="ic"><svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 1v4M15 1v4M9 19v4M15 19v4M1 9h4M1 15h4M19 9h4M19 15h4"/></svg></div>
+        <h4>1. Contexto SIGE</h4><p>Plantea una situación real de la micro-red híbrida.</p></div>
+      <div class="acard frag" data-hl="r2"><div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></div>
+        <h4>2. Enunciado Clave</h4><p>Define la tarea puntual de código o redacción.</p></div>
+      <div class="acard frag" data-hl="r3"><div class="ic"><svg viewBox="0 0 24 24"><path d="M3 6l2 2 3-3M3 13l2 2 3-3M3 20l2 2 3-3M11 6h10M11 13h10M11 20h10"/></svg></div>
+        <h4>3. Cuatro Opciones</h4><p>Una clave válida y tres distractores técnicos.</p></div>
+    </div>
+    <div class="mock frag">
+      <div class="row r1"><span class="tag">Contexto</span>La batería del SIGE reporta su estado de carga en un vector horario de 1×24…</div>
+      <div class="row r2"><span class="tag">Enunciado</span><b>¿Qué operador multiplica posición por posición sin error de dimensiones?</b></div>
+      <div class="row r3"><span class="tag">Opciones</span>
+        <div class="opts"><div>A. *</div><div class="k">B. .* ✓</div><div>C. ./</div><div>D. .^</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 4 · BLOQUE 1 -->
+<section class="slide dark" data-title="Bloque 1 · Modelado matemático">
+  <div class="wrap divider"><div class="big">01</div>
+    <div><div class="eyebrow">Bloque 1 · Modelado matemático</div><h1>Variables, Arreglos y Gráficas</h1><span class="rac">RAC 1</span></div></div>
+</section>
+
+<!-- 5 · TIPS RAC1 -->
+<section class="slide" data-title="Tips de Modelado y Arreglos (RAC 1)">
+  <div class="wrap">
+    <div class="head"><h2>Tips de Modelado y Arreglos (RAC 1)</h2><p class="sub">Claves sobre sintaxis vectorial y entorno de trabajo en MATLAB</p></div>
+    <div class="two">
+      <div class="tiplist">
+        <div class="tip frag" data-line="2"><b>Vectores horarios</b><span>Series de 24 horas usan dimensión <code>1×24</code>.</span></div>
+        <div class="tip frag" data-line="1"><b>Limpieza RAM</b><span><code>clear</code> borra variables; <code>clc</code> limpia consola.</span></div>
+        <div class="tip frag" data-line="3"><b>Operador punto</b><span><code>.*</code> multiplica vectores posición por posición.</span></div>
+        <div class="tip frag" data-line="5"><b>Estándar gráfico</b><span>Ejes requieren magnitud y unidad física.</span></div>
+      </div>
+      <div class="code" id="code1">
+        <div class="bar3"><i></i><i></i><i></i><em>sige_balance.m</em></div>
+        <span class="ln"><span class="c-com">% Verificación rápida de sintaxis</span></span>
+        <span class="ln"><span class="c-fn">clear</span>; <span class="c-fn">clc</span>;</span>
+        <span class="ln">tiempo = <span class="c-num">1</span>:<span class="c-num">24</span>;           <span class="c-com">% 1×24</span></span>
+        <span class="ln">E_net = E_gen <span class="c-op">.*</span> rendimiento;</span>
+        <span class="ln">promedio = <span class="c-fn">mean</span>(E_gen);</span>
+        <span class="ln"><span class="c-fn">xlabel</span>(<span class="c-str">'Tiempo (h)'</span>); <span class="c-fn">ylabel</span>(<span class="c-str">'Energía (kWh)'</span>);</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 6 · EJEMPLO VECTORES -->
+<section class="slide" data-title="Ejemplo POC · Operaciones Vectoriales">
+  <div class="wrap">
+    <div class="head"><h2>Ejemplo POC · Operaciones Vectoriales</h2><p class="sub">Caso práctico sobre multiplicación elemento a elemento en MATLAB</p></div>
+    <div class="quiz" data-quiz="vec"></div>
+  </div>
+</section>
+
+<!-- 7 · EJEMPLO MEMORIA -->
+<section class="slide" data-title="Ejemplo POC · Gestión de Memoria">
+  <div class="wrap">
+    <div class="head"><h2>Ejemplo POC · Gestión de Memoria</h2><p class="sub">Diferencia crítica entre limpieza de pantalla y liberación de RAM</p></div>
+    <div class="quiz" data-quiz="mem"></div>
+  </div>
+</section>
+
+<!-- 8 · BLOQUE 2 -->
+<section class="slide dark" data-title="Bloque 2 · Control algorítmico">
+  <div class="wrap divider o"><div class="big">02</div>
+    <div><div class="eyebrow">Bloque 2 · Control algorítmico</div><h1>Condicionales, Bucles y Cohesión</h1><span class="rac">RAC 2</span></div></div>
+</section>
+
+<!-- 9 · TIPS RAC2 + SIMULADOR -->
+<section class="slide" data-title="Tips de Lógica de Control (RAC 2)">
+  <div class="wrap">
+    <div class="head"><h2>Tips de Lógica de Control (RAC 2)</h2><p class="sub">Reglas de decisión y desconexión selectiva (Load Shedding)</p></div>
+    <div class="two">
+      <div class="rules">
+        <div class="rule frag"><div class="n">1</div><div><h4>Bucles Definidos e Indefinidos</h4><p><code>for</code> recorre 24 horas fijas; <code>while</code> espera eventos.</p></div></div>
+        <div class="rule frag"><div class="n">2</div><div><h4>Umbrales Críticos del SOC</h4><p>&gt;40% Segura · 20–40% Alerta (sin alumbrado) · ≤20% Emergencia (solo escuela).</p></div></div>
+        <div class="rule frag"><div class="n">3</div><div><h4>Histéresis y Saturación</h4><p><code>max()</code> evita SOC negativo; histéresis frena parpadeo de relés.</p></div></div>
+      </div>
+      <div class="sim">
+        <h4>🔧 Simulador de Load Shedding · mueve el SOC</h4>
+        <div class="batt"><div class="cell"><div class="fill" id="socFill"></div></div>
+          <div><div class="socv"><span id="socVal">65</span>%</div><span class="state" id="socState">SEGURA</span></div></div>
+        <input type="range" id="soc" min="0" max="100" value="65" aria-label="Estado de carga SOC">
+        <div class="loads">
+          <div class="load" id="ldEsc"><span class="ico">🏫</span>Escuela</div>
+          <div class="load" id="ldViv"><span class="ico">🏠</span>Viviendas</div>
+          <div class="load" id="ldAlu"><span class="ico">💡</span>Alumbrado</div>
+        </div>
+        <div class="code">
+          <span class="ln" id="b1"><span class="c-kw">if</span> SOC &gt; <span class="c-num">40</span>        <span class="c-com">% Segura</span></span>
+          <span class="ln" id="b1b">    estado = <span class="c-str">'Segura'</span>;</span>
+          <span class="ln" id="b2"><span class="c-kw">elseif</span> SOC &gt; <span class="c-num">20</span>    <span class="c-com">% Alerta</span></span>
+          <span class="ln" id="b2b">    alumbrado = <span class="c-num">0</span>;</span>
+          <span class="ln" id="b3"><span class="c-kw">else</span>               <span class="c-com">% Emergencia</span></span>
+          <span class="ln" id="b3b">    solo_escuela = <span class="c-num">1</span>;</span>
+          <span class="ln"><span class="c-kw">end</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 10 · EJEMPLO SATURACIÓN -->
+<section class="slide" data-title="Ejemplo POC · Saturación de Batería">
+  <div class="wrap">
+    <div class="head"><h2>Ejemplo POC · Saturación de Batería</h2><p class="sub">Protección matemática contra valores negativos del SOC</p></div>
+    <div class="quiz" data-quiz="sat"></div>
+  </div>
+</section>
+
+<!-- 11 · EJEMPLO CONTROL -->
+<section class="slide" data-title="Ejemplo POC · Estructuras de Control">
+  <div class="wrap">
+    <div class="head"><h2>Ejemplo POC · Estructuras de Control</h2><p class="sub">Depuración de bloques condicionales incompletos en consola</p></div>
+    <div class="quiz" data-quiz="end"></div>
+  </div>
+</section>
+
+<!-- 12 · BLOQUE 3 -->
+<section class="slide dark" data-title="Bloque 3 · Interacción humano-máquina">
+  <div class="wrap divider"><div class="big">03</div>
+    <div><div class="eyebrow">Bloque 3 · Interacción humano-máquina</div><h1>App Designer y Manuales Técnicos</h1><span class="rac">RAC 3</span></div></div>
+</section>
+
+<!-- 13 · TIPS HMI -->
+<section class="slide" data-title="Tips de Interfaces HMI (RAC 3)">
+  <div class="wrap">
+    <div class="head"><h2>Tips de Interfaces HMI (RAC 3)</h2><p class="sub">Componentes y programación orientada a eventos en App Designer · toca un componente</p></div>
+    <div class="two">
+      <div class="comps">
+        <button class="comp" data-p="pSlider"><span class="ic">🎚️</span><h4>Slider / Knob</h4><p>Modulan entradas continuas de potencia.</p></button>
+        <button class="comp" data-p="pGauge"><span class="ic">🟢</span><h4>Gauge y Lamp</h4><p>Muestran SOC y estado Verde/Rojo.</p></button>
+        <button class="comp" data-p="pAxes"><span class="ic">📈</span><h4>Objeto UIAxes</h4><p>Primer argumento de <code>plot()</code> en GUI.</p></button>
+        <button class="comp" data-p="pCb"><span class="ic">⚡</span><h4>Callbacks</h4><p>Subrutinas activadas por acción humana.</p></button>
+      </div>
+      <div class="hmi">
+        <div class="title"><span>⬛ SIGE_HMI.mlapp</span><span>App Designer · Run</span></div>
+        <div class="hmi-grid">
+          <div class="panel" id="pSlider"><label>Slider · Demanda (kW)</label>
+            <input type="range" id="hmiSl" min="0" max="100" value="25" aria-label="Demanda"><div style="font-size:13px;color:#475569">Demanda: <b id="hmiD">25</b> kW</div></div>
+          <div class="panel" id="pGauge"><label>Gauge SOC · Lamp</label>
+            <svg viewBox="0 0 120 70" width="100%" height="64"><path d="M10 62 A50 50 0 0 1 110 62" fill="none" stroke="#e2e8f0" stroke-width="10" stroke-linecap="round"/>
+              <path id="gArc" d="M10 62 A50 50 0 0 1 110 62" fill="none" stroke="#0284c7" stroke-width="10" stroke-linecap="round" pathLength="100" stroke-dasharray="70 100"/>
+              <text id="gTxt" x="60" y="60" text-anchor="middle" font-size="18" font-weight="800" font-family="Outfit">70%</text></svg>
+            <div><span class="lamp" id="lamp"></span><span id="lampT" style="font-size:13px;font-weight:600">Normal</span></div></div>
+          <div class="panel wide" id="pAxes"><label>app.UIAxes_Balance</label>
+            <svg viewBox="0 0 300 80" width="100%" height="80" preserveAspectRatio="none"><line x1="0" y1="79" x2="300" y2="79" stroke="#cbd5e1"/><polyline id="axLine" fill="none" stroke="#d97706" stroke-width="2.5" points=""/></svg></div>
+          <div class="panel wide" id="pCb"><label>Callback</label>
+            <div style="display:flex;gap:8px;align-items:center"><button class="btn-hmi" id="hmiBtn">▶ Iniciar</button><div class="log" id="hmiLog" style="flex:1">% Esperando acción del operario…</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 14 · EJEMPLO BACKEND -->
+<section class="slide" data-title="Ejemplo POC · Backend en App Designer">
+  <div class="wrap">
+    <div class="head"><h2>Ejemplo POC · Backend en App Designer</h2><p class="sub">Notación orientada a objetos para graficación en interfaz</p></div>
+    <div class="quiz" data-quiz="plot"></div>
+  </div>
+</section>
+
+<!-- 15 · COMUNICACIÓN ESCRITA -->
+<section class="slide" data-title="Tips de Comunicación Escrita">
+  <div class="wrap">
+    <div class="head"><h2>Tips de Comunicación Escrita</h2><p class="sub">Criterios lingüísticos evaluados transversalmente en la prueba</p></div>
+    <div class="cols">
+      <div class="col no frag"><h4><i>✕</i>Evitar en las Opciones</h4><ul>
+        <li>Coloquialismos <small>("buclee", "pantallazo")</small></li>
+        <li>Primera o segunda persona <small>("nosotros", "tú")</small></li>
+        <li>Gerundios de consecuencia <small>("cayó, provocando")</small></li></ul></div>
+      <div class="col yes frag"><h4><i>✓</i>Priorizar en la Clave</h4><ul>
+        <li>Voz pasiva impersonal <small>("se procede a verificar")</small></li>
+        <li>Conectores seguidos de coma <small>("Sin embargo,")</small></li>
+        <li>Organización deductiva y normas APA 7</li></ul></div>
+    </div>
+    <div class="game frag" id="game"><h5>🎯 Detector de registro <span>· ¿Esta frase va en una clave o se evita?</span></h5></div>
+  </div>
+</section>
+
+<!-- 16 · EJEMPLO REDACCIÓN -->
+<section class="slide" data-title="Ejemplo POC · Redacción Técnica">
+  <div class="wrap">
+    <div class="head"><h2>Ejemplo POC · Redacción Técnica</h2><p class="sub">Aplicación de la voz pasiva impersonal en manuales de operación</p></div>
+    <div class="quiz" data-quiz="red"></div>
+  </div>
+</section>
+
+<!-- 17 · RUTA -->
+<section class="slide" data-title="Ruta de Resolución por Pregunta">
+  <div class="wrap">
+    <div class="head"><h2>Ruta de Resolución por Pregunta</h2><p class="sub">Secuencia recomendada durante el intento en Moodle</p></div>
+    <div class="route">
+      <div class="step frag"><div class="n">01</div><h4>Identificar Variable</h4><p>Ubica si evalúa código MATLAB o redacción.</p></div>
+      <div class="step frag"><div class="n">02</div><h4>Validar Sintaxis</h4><p>Revisa operadores punto, índices y cierres <code>end</code>.</p></div>
+      <div class="step frag"><div class="n">03</div><h4>Descartar Ruido</h4><p>Elimina opciones con tono informal o coloquial.</p></div>
+      <div class="step frag"><div class="n">04</div><h4>Confirmar Clave</h4><p>Verifica coherencia con la lógica del SIGE.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 18 · GRACIAS -->
+<section class="slide dark" data-title="Gracias">
+  <div class="wrap end">
+    <h1>Gracias</h1>
+    <p>¡Éxitos en la Prueba POC!</p>
+    <div class="score">
+      <div class="big" id="scoreBig">0/6</div>
+      <div><small>Ejemplos POC resueltos</small><b id="scoreTxt" style="color:#fff">al primer intento</b><br>
+        <button style="margin-top:8px" onclick="resetQuizzes()">↺ Reiniciar práctica</button></div>
+    </div><br>
+    <div class="author"><b>FAUSTO MIGUEL CASTRO CAICEDO</b><small>DIRECTOR · SOFTWARE PARA INGENIERÍA</small><a href="mailto:miguel.castro@unad.edu.co">miguel.castro@unad.edu.co</a></div>
+  </div>
+</section>
+
+</main>
+
+<nav class="nav" aria-label="Navegación">
+  <button id="btnPrev" title="Anterior (←)" aria-label="Anterior"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+  <span class="count" id="count">1 / 18</span>
+  <button class="next" id="btnNext" title="Siguiente (→ / espacio)" aria-label="Siguiente"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
+  <button id="btnOv" title="Índice (O)" aria-label="Índice"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></button>
+  <button id="btnFs" title="Pantalla completa (F)" aria-label="Pantalla completa"><svg viewBox="0 0 24 24"><path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6"/></svg></button>
+</nav>
+<div class="hint"><kbd>←</kbd> <kbd>→</kbd> navegar · <kbd>O</kbd> índice · <kbd>F</kbd> pantalla completa</div>
+<div class="overview" id="overview"><h3>Índice de diapositivas</h3><div class="ov-grid" id="ovGrid"></div></div>
+
+<script>
+/* ================= QUIZ DATA ================= */
+const QUIZ = {
+  vec:{rac:'Reactivo tipo (RAC 1)',or:false,
+    ctx:'Se tienen dos vectores fila de tamaño <code>1×24</code>: <code>Generacion</code> y <code>Factor_Rendimiento</code>.',
+    q:'¿Qué operador aritmético multiplica las posiciones correspondientes una a una sin error de dimensiones?',
+    opts:[['*','d'],['.*','k'],['./','x'],['.^','x']],
+    k:['Clave: .* (Punto asterisco)','Ejecuta producto elemento a elemento.'],
+    d:['Distractor común: * (Asterisco)','Exige reglas de álgebra matricial (1×24 falla).'],
+    x:'Es un operador elemento a elemento, pero de otra operación (división o potencia), no de multiplicación.'},
+  mem:{rac:'Reactivo tipo (RAC 1)',or:true,
+    ctx:'El Workspace almacena en memoria todas las matrices creadas por scripts previos.',
+    q:'¿Cuál comando elimina todas las variables activas de la RAM para evitar conflictos de nombres?',
+    opts:[['clc','d'],['close all','x'],['clear','k'],['delete','x']],
+    k:['Clave: clear','Vacía por completo el Workspace en memoria.'],
+    d:['Distractor común: clc','Solo limpia el texto visible en Command Window.'],
+    x:'Actúa sobre ventanas de figuras o archivos, no sobre las variables del Workspace.'},
+  sat:{rac:'Reactivo tipo (RAC 2)',or:false,
+    ctx:'En el bucle de balance energético, la resta <code>SOC_actual - Faltante</code> puede arrojar valores menores a cero.',
+    q:'¿Qué función de MATLAB limita el valor mínimo a 0 para evitar descargas imposibles en la física real?',
+    opts:[['abs(SOC - Faltante)','x'],['max(0, SOC - Faltante)','k'],['min(0, SOC - Faltante)','d'],['round(SOC - Faltante)','x']],
+    k:['Clave: max(0, SOC - Faltante)','Selecciona 0 si la resta produce un negativo.'],
+    d:['Distractor común: min(...)','min se usa para el techo superior (100%).'],
+    x:'No acota el resultado: abs invierte el signo (crea energía ficticia) y round solo redondea.'},
+  end:{rac:'Reactivo tipo (RAC 2)',or:true,
+    ctx:'Se digita <code>if SOC &lt; 20; disp(\'Alerta\')</code> en consola, pero MATLAB queda en espera sin ejecutar.',
+    q:'¿Cuál es la causa técnica por la cual el bloque permanece suspendido?',
+    opts:[['Faltan paréntesis en la condición','d'],['Falta la palabra clave end','k'],['Sobra el punto y coma tras la condición','x'],['disp no admite texto entre comillas simples','x']],txt:true,
+    k:['Clave: Falta palabra clave end','Todo bloque if, for o while exige cierre con end.'],
+    d:['Distractor común: Faltan paréntesis','En MATLAB los paréntesis en el if son opcionales.'],
+    x:'La sintaxis es válida en MATLAB; no explica por qué el bloque queda abierto.'},
+  plot:{rac:'Reactivo tipo (RAC 3)',or:false,
+    ctx:'Al pulsar iniciar en la HMI, las curvas deben dibujarse dentro del panel <code>app.UIAxes_Balance</code> y no en ventana externa.',
+    q:'¿Cuál es la sintaxis correcta de graficación en el callback?',
+    opts:[['figure(app.UIAxes_Balance); plot(t, E)','d'],['plot(t, E)','x'],['plot(app.UIAxes_Balance, t, E)','k'],['plot(t, E, app.UIAxes_Balance)','x']],
+    k:['Clave: plot(app.UIAxes_Balance, t, E)','El objeto UIAxes siempre va como primer parámetro.'],
+    d:['Distractor común: figure(app.UIAxes...)','figure() abre una ventana flotante externa.'],
+    x:'Sin el UIAxes como primer argumento, la curva no se dirige al panel de la interfaz.'},
+  red:{rac:'Reactivo tipo (Comunicación escrita)',or:true,
+    ctx:'En el Manual Técnico de la HMI se instruye al operario a verificar el medidor analógico de carga.',
+    q:'¿Cuál fragmento cumple con el registro directivo e impersonal exigido en ingeniería?',
+    opts:[['"Debes fijarte en el relojito de la carga antes de arrancar."','d'],['"Nosotros revisamos el medidor cuando el sistema arranca."','x'],['"Se debe verificar en el medidor analógico el nivel de carga antes de iniciar la operación."','k'],['"El sistema arranca, provocando que se mire el pantallazo del medidor."','x']],txt:true,
+    k:['Clave: "Se debe verificar en el medidor..."','Usa voz pasiva impersonal y léxico técnico formal.'],
+    d:['Distractor: "Debes fijarte en el relojito..."','Incurre en tuteo y coloquialismos ("relojito").'],
+    x:'Usa primera persona, gerundio de consecuencia o coloquialismos ("pantallazo").'}
+};
+const score = {};
+const L = ['A','B','C','D'];
+
+function renderQuiz(box){
+  const id = box.dataset.quiz, Q = QUIZ[id];
+  box.innerHTML = `
+    <div class="stem ${Q.or?'or':''}"><div class="eyebrow ${Q.or?'or':''}">${Q.rac}</div>
+      <p>${Q.ctx}</p><p class="q">${Q.q}</p></div>
+    <div><div class="qhint">👆 Elige una opción</div><div class="opts">${Q.opts.map((o,i)=>
+      `<button class="opt" data-i="${i}"><span class="l">${L[i]}</span><span class="t ${Q.txt?'txt':''}">${o[0].replace(/</g,'&lt;')}</span></button>`).join('')}</div>
+      <div class="feedback"></div></div>`;
+  box.querySelectorAll('.opt').forEach(b=>b.onclick=()=>answer(box,+b.dataset.i));
+}
+function answer(box,i){
+  const id = box.dataset.quiz, Q = QUIZ[id], kind = Q.opts[i][1];
+  const btns = box.querySelectorAll('.opt'), fb = box.querySelector('.feedback');
+  if(!(id in score)) score[id] = (kind==='k');
+  btns.forEach((b,j)=>{b.disabled=true; const k=Q.opts[j][1];
+    if(k==='k') b.classList.add('ok'); else if(j===i) b.classList.add('bad'); else b.classList.add('dim');});
+  let html = `<div class="fb k"><b>${kind==='k'?'✅ ¡Correcto! ':''}${Q.k[0]}</b>${Q.k[1]}</div>`;
+  const dIdx = Q.opts.findIndex(o=>o[1]==='d');
+  html += `<div class="fb d"><b>${Q.d[0]}</b>${Q.d[1]}</div>`;
+  if(kind==='x') html += `<div class="fb d"><b>Tu elección: ${Q.opts[i][0]}</b>${Q.x}</div>`;
+  html += `<button class="retry">↺ Intentar de nuevo</button>`;
+  fb.innerHTML = html;
+  fb.querySelector('.retry').onclick = ()=>renderQuiz(box);
+  updateScore();
+}
+function updateScore(){
+  const ok = Object.values(score).filter(Boolean).length;
+  document.getElementById('scoreBig').textContent = ok + '/6';
+  const n = Object.keys(score).length;
+  document.getElementById('scoreTxt').textContent = n<6 ? `al primer intento · ${6-n} por responder` : 'al primer intento';
+}
+function resetQuizzes(){ for(const k in score) delete score[k]; document.querySelectorAll('[data-quiz]').forEach(renderQuiz); updateScore(); }
+document.querySelectorAll('[data-quiz]').forEach(renderQuiz);
+updateScore();
+
+/* ================= NAVIGATION ================= */
+const slides = [...document.querySelectorAll('.slide')];
+let cur = 0;
+const $ = id => document.getElementById(id);
+
+function go(n, revealAll){
+  n = Math.max(0, Math.min(slides.length-1, n));
+  slides.forEach((s,i)=>{s.classList.toggle('active',i===n); s.classList.toggle('past',i<n);});
+  const frags = slides[n].querySelectorAll('.frag');
+  frags.forEach(f=>f.classList.toggle('shown', !!revealAll));
+  cur = n;
+  $('count').textContent = `${n+1} / ${slides.length}`;
+  $('progress').style.width = ((n+1)/slides.length*100)+'%';
+  $('btnPrev').disabled = n===0;
+  document.body.classList.toggle('on-dark', slides[n].classList.contains('dark'));
+  history.replaceState(null,'','#'+(n+1));
+  onEnter(n);
+  if(revealAll) frags.forEach(onFrag);
+}
+function next(){
+  const hidden = slides[cur].querySelector('.frag:not(.shown)');
+  if(hidden){ hidden.classList.add('shown'); onFrag(hidden); return; }
+  if(cur < slides.length-1) go(cur+1);
+}
+function prev(){ if(cur>0) go(cur-1, true); }
+
+$('btnNext').onclick = next;
+$('btnPrev').onclick = prev;
+$('btnFs').onclick = toggleFs;
+$('btnOv').onclick = toggleOv;
+function toggleFs(){ document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.(); }
+function toggleOv(){
+  const ov = $('overview'); ov.classList.toggle('open');
+  if(ov.classList.contains('open')){
+    $('ovGrid').innerHTML = slides.map((s,i)=>`<button class="ov-item ${i===cur?'cur':''}" data-i="${i}"><span>${String(i+1).padStart(2,'0')}</span>${s.dataset.title}</button>`).join('');
+    $('ovGrid').querySelectorAll('button').forEach(b=>b.onclick=()=>{toggleOv(); go(+b.dataset.i, true);});
+  }
+}
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT') return;
+  if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){ if(e.key==='Enter' && e.target.tagName==='BUTTON') return; e.preventDefault(); next(); }
+  else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){ e.preventDefault(); prev(); }
+  else if(e.key==='Home') go(0); else if(e.key==='End') go(slides.length-1, true);
+  else if(e.key==='f'||e.key==='F') toggleFs();
+  else if(e.key==='o'||e.key==='O'||e.key==='Escape'){ if(e.key!=='Escape' || $('overview').classList.contains('open')) toggleOv(); }
+});
+/* swipe */
+let tx=null, ty=null;
+document.addEventListener('touchstart',e=>{ if(e.target.tagName==='INPUT'){tx=null;return;} tx=e.touches[0].clientX; ty=e.touches[0].clientY; },{passive:true});
+document.addEventListener('touchend',e=>{ if(tx===null) return; const dx=e.changedTouches[0].clientX-tx, dy=e.changedTouches[0].clientY-ty;
+  if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)) dx<0?next():prev(); tx=null; });
+
+/* ================= SLIDE HOOKS ================= */
+function onEnter(n){
+  const s = slides[n];
+  s.querySelectorAll('[data-count]').forEach(el=>{
+    const target=+el.dataset.count, t0=performance.now(), dur=1100;
+    (function tick(t){ const p=Math.min(1,(t-t0)/dur), e=1-Math.pow(1-p,3); el.textContent=Math.round(target*e); if(p<1) requestAnimationFrame(tick); })(t0);
+  });
+  s.querySelectorAll('.ln.hl').forEach(l=>{ if(!l.closest('.sim')) l.classList.remove('hl'); });
+  s.querySelectorAll('.tip.hl').forEach(t=>t.classList.remove('hl'));
+  s.querySelectorAll('.mock .row').forEach(r=>r.style.background='');
+}
+function onFrag(f){
+  // RAC1 tips: highlight matching code line
+  if(f.dataset.line){ highlightTip(f); }
+  // anatomy: highlight part of the sample reactivo
+  if(f.dataset.hl){
+    const m = f.closest('.slide').querySelector('.mock'); if(!m) return;
+    m.querySelectorAll('.row').forEach(r=>r.style.background='');
+    const colors={r1:'#e0f2fe',r2:'#fef3c7',r3:'#f1f5f9'};
+    m.querySelector('.'+f.dataset.hl).style.background=colors[f.dataset.hl];
+  }
+}
+function highlightTip(tip){
+  const lines = document.querySelectorAll('#code1 .ln');
+  lines.forEach(l=>l.classList.remove('hl'));
+  document.querySelectorAll('.tip').forEach(t=>t.classList.remove('hl'));
+  tip.classList.add('hl');
+  lines[+tip.dataset.line]?.classList.add('hl');
+}
+document.querySelectorAll('.tip').forEach(t=>t.addEventListener('click',()=>highlightTip(t)));
+document.querySelectorAll('.acard').forEach(c=>c.addEventListener('click',()=>onFrag(c)));
+
+/* ================= SOC SIMULATOR ================= */
+function updSoc(){
+  const v = +$('soc').value;
+  $('socVal').textContent = v;
+  const fill = $('socFill'); fill.style.width = v+'%';
+  let st, col, on;
+  if(v>40){ st='SEGURA'; col='var(--green)'; on=[1,1,1]; }
+  else if(v>20){ st='ALERTA'; col='var(--orange)'; on=[1,1,0]; }
+  else { st='EMERGENCIA'; col='var(--red)'; on=[1,0,0]; }
+  fill.style.background = col; $('socState').textContent = st; $('socState').style.background = col;
+  ['ldEsc','ldViv','ldAlu'].forEach((id,i)=>{ $(id).classList.toggle('on',!!on[i]); $(id).classList.toggle('off',!on[i]); });
+  const br = v>40?1:v>20?2:3;
+  [1,2,3].forEach(k=>{ $('b'+k).classList.toggle('hl',k===br); $('b'+k+'b').classList.toggle('hl',k===br); });
+}
+$('soc').addEventListener('input',updSoc); updSoc();
+
+/* ================= MINI HMI ================= */
+let hist=[], soc=70, timer=null;
+function drawHmi(){
+  const d = +$('hmiSl').value; $('hmiD').textContent = d;
+  $('gArc').setAttribute('stroke-dasharray', `${soc} 100`);
+  $('gArc').setAttribute('stroke', soc>40?'#0284c7':soc>20?'#d97706':'#dc2626');
+  $('gTxt').textContent = Math.round(soc)+'%';
+  const low = soc<=20; $('lamp').classList.toggle('red',low); $('lampT').textContent = low?'Emergencia':'Normal';
+  $('axLine').setAttribute('points', hist.map((y,i)=>`${i*(300/23)},${78-y*0.74}`).join(' '));
+}
+$('hmiSl').addEventListener('input',()=>{ $('hmiLog').textContent='% DemandaSliderValueChanged(app, event) ejecutado'; flash('pSlider'); drawHmi(); });
+$('hmiBtn').onclick = ()=>{
+  clearInterval(timer); hist=[]; soc=60; let h=0;
+  $('hmiLog').textContent='% IniciarButtonPushed → plot(app.UIAxes_Balance, t, SOC)';
+  flash('pCb');
+  timer = setInterval(()=>{
+    const d=+$('hmiSl').value, gen = 85*Math.max(0,Math.sin((h-6)/12*Math.PI));
+    soc = Math.min(100, Math.max(0, soc + (gen - d)*0.25));
+    hist.push(soc); drawHmi(); h++;
+    if(h>=24){ clearInterval(timer); $('hmiLog').textContent='% Simulación de 24 h completa · for h = 1:24'; }
+  },140);
+};
+function flash(id){ document.querySelectorAll('.panel').forEach(p=>p.classList.remove('hl')); $(id).classList.add('hl'); }
+document.querySelectorAll('.comp').forEach(c=>c.onclick=()=>{
+  document.querySelectorAll('.comp').forEach(x=>x.classList.remove('hl')); c.classList.add('hl'); flash(c.dataset.p);
+});
+drawHmi();
+
+/* ================= WRITING GAME ================= */
+const PHR = [
+  ['El script buclea las 24 horas sin parar.', false, 'Coloquialismo ("buclea"): se evita.'],
+  ['Se procede a verificar el estado del SOC.', true, 'Voz pasiva impersonal: registro adecuado para la clave.'],
+  ['Nosotros revisamos el relé después del corte.', false, 'Primera persona ("nosotros"): se evita.'],
+  ['La batería cayó, provocando el apagado de la escuela.', false, 'Gerundio de consecuencia ("provocando"): se evita.'],
+  ['Sin embargo, el SOC permanece por encima del umbral.', true, 'Conector seguido de coma y léxico técnico: adecuado.']
+];
+$('game').insertAdjacentHTML('beforeend', PHR.map((p,i)=>`
+  <div class="phr" data-i="${i}"><q>${p[0]}</q>
+    <button class="y">✓ Clave</button><button class="n">✕ Evitar</button></div>`).join(''));
+document.querySelectorAll('.phr').forEach(row=>{
+  const p = PHR[+row.dataset.i];
+  row.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    row.querySelector('.res')?.remove();
+    const said = b.classList.contains('y'), good = said===p[1];
+    row.insertAdjacentHTML('beforeend',`<span class="res ${good?'good':'wrong'}">${good?'✔ Correcto':'✘ Revisa'} · ${p[2]}</span>`);
+  });
+});
+
+/* ================= START ================= */
+const start = parseInt(location.hash.slice(1),10);
+go(isNaN(start)?0:start-1, !isNaN(start) && start>1);
+</script>
+</body>
+</html>
